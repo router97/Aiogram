@@ -54,7 +54,7 @@ def generate_message() -> InlineKeyboardMarkup:
     button2 = InlineKeyboardButton(text=options[1], callback_data=options[1])
     button3 = InlineKeyboardButton(text=options[2], callback_data=options[2])
     button4 = InlineKeyboardButton(text=options[3], callback_data=options[3])
-    button5 = InlineKeyboardButton(text='next', callback_data='next')
+    button5 = InlineKeyboardButton(text='skip', callback_data='next')
     markup = InlineKeyboardMarkup(inline_keyboard=[[button,button2], [button3, button4], [button5]])
     return markup
 
@@ -74,6 +74,8 @@ async def inline_kb_answer_callback_handler(query: types.CallbackQuery):
     
     if str(eval(selected_option)) == answer:
         await query.answer("Correct!")
+        markup = generate_message()
+        await query.message.edit_text(text=f"{answer}", reply_markup=markup)
     elif selected_option == 'next':
         markup = generate_message()
         await query.message.edit_text(text=f"{answer}", reply_markup=markup)

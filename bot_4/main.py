@@ -2,6 +2,9 @@
 
 
 # IMPORTS
+import os
+import json
+
 from aiogram import Bot, Dispatcher
 import asyncio
 import logging
@@ -20,20 +23,63 @@ from config import API_TOKEN
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher(bot=bot)
 translator = Translator()
+data_path = 'user_data.json'
+
+
+def get_user_language(id: int) -> str:
+    with open(data_path, 'r') as fl:
+        file_read = json.load(fl)
+    return file_read[str(id)]
 
 
 # COMMANDS
 @dp.message(CommandStart())
 async def command_start_handler(message: Message):
-    print(message, "\n"*3)
-    await message.answer("<i>Engie goin' up!</i>\n<b>↓ commands ↓</b>\n<pre>/math</pre>")
+    await message.answer("a")
+
+
+@dp.message(Command('setlang'))
+async def command_set_language_handler(message: Message):
+    lang_src, lang_dest = message.text.replace('/setlang', '').strip().split('-')
+    user_id = message.from_user.id
+    
+    try:
+        with open(data_path, 'r') as fl:
+            file_read = json.load(fl)
+    except (FileNotFoundError, json.JSONDecodeError):
+        file_read = {}
+
+    if user_id in file_read.keys():
+        file_read[str(user_id)] = {
+            'src': lang_src, 
+            'dest': lang_dest
+            }
+    else:
+        file_read.update(
+            {
+                str(user_id): 
+                    {
+                    'src': lang_src, 
+                    'dest': lang_dest
+                    }
+            }
+        )
+
+    with open(data_path, 'w') as fl:
+        json.dump(file_read, fl, indent=4)
 
 
 @dp.message(Command('translate'))
 async def command_translate_handler(message: Message):
+    
     text = message.text.replace('/translate', '')
-    text_translated = translator.translate(text)
-    await message.answer(f"↓ Translated from <b>{text_translated.src}</b> to <b>{text_translated.dest}</b> ↓\n<code>{text_translated.text}</code>")
+    langs = get_user_language(message.from_user.id)
+    lang_src, lang_dest = langs['src'], langs['dest']
+    
+    lang_detected = translator.detect()
+    text_translated = translator.translate(text, src=lang_src, dest=lang_dest)
+    
+    await message.answer(f"{text_translated.text}")
 
 
 # MESSAGES

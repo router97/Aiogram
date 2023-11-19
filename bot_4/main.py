@@ -160,6 +160,22 @@ async def translate(message: Message, state: FSMContext):
     data = await state.get_data()
     lang_src = data.get("lang_src", "auto")
     lang_dest = data.get("lang_dest", "en") 
+    lang_src_detected = translator.detect(message.text).lang
+    
+    # If the source language isn't auto and the text isn't in the source language
+    if lang_src.casefold() != 'auto' and lang_src != lang_src_detected:
+        # Reply stating that the language is invalid
+        await message.reply(f"""your message isn't in the source language you provided.\nyour language: {lang_src}, detected language: {lang_src_detected}.\nmaybe try setting it to auto?""",
+                            reply_markup=types.ReplyKeyboardMarkup(
+                            keyboard=[
+                                [
+                                    types.KeyboardButton(text="Change Language"), 
+                                    types.KeyboardButton(text="Cancel")
+                                ]
+                            ],
+                            resize_keyboard=True
+                            ))
+        return
     
     # Translating and sending the result
     try:

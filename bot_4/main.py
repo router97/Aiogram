@@ -64,11 +64,17 @@ async def command_start_handler(message: Message, state: FSMContext):
 # Activation no handler
 @form_router.message(Form.activate, F.text.casefold() == "no")
 async def process_activate_no(message: Message, state: FSMContext):
-    await state.update_data(activate = message.text)
-
+    await state.clear()
     await message.reply(
         "cya later, then",
-        reply_markup=types.ReplyKeyboardRemove()
+        reply_markup=types.ReplyKeyboardMarkup(
+            keyboard=[
+                [
+                    types.KeyboardButton(text="/start")
+                ]
+            ],
+            resize_keyboard=True
+        )
         )
 
 
@@ -108,7 +114,7 @@ async def process_cancel(message: Message, state: FSMContext):
                 ]
             ],
             resize_keyboard=True
-        ),
+        )
     )
 
 
@@ -238,19 +244,11 @@ async def process_translating_change(message: Message, state: FSMContext):
 
 
 # LAUNCH
-
-
 async def main():
-    # Routers
     dp.include_router(form_router)
-    
-    # Start polling
     await dp.start_polling(bot)
 
 
 if __name__ == "__main__":
-    # Logging
     logging.basicConfig(level=logging.INFO, stream=sys.stdout)
-    
-    # Launching the bot
     asyncio.run(main())

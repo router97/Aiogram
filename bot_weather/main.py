@@ -43,7 +43,7 @@ def generate_weather_message(weather_data: dict, city: str) -> str:
     # Convert the temperature to Celsius
     temperature_in_celsius = weather_data['main']['temp'] - 273.15
     
-    # Extract the weather description
+    # Extract the weather description (0 index because weather_data['weather'] is a list with one element)
     weather_description = weather_data['weather'][0]['description']
     
     # Extract the wind speed

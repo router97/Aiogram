@@ -19,11 +19,11 @@ from geopy import Nominatim
 from config import API_TOKEN, API_WEATHER
 
 
-# VARIABLES
-bot = Bot(token=API_TOKEN, parse_mode=ParseMode.HTML)
-dp = Dispatcher(bot=bot)
-form_router = Router(name='Weather FSM machine')
-geolocator = Nominatim(user_agent='bot')
+# CONSTANTS
+BOT = Bot(token=API_TOKEN, parse_mode=ParseMode.HTML)
+DP = Dispatcher(bot=BOT)
+FORM_ROUTER = Router(name='Weather FSM machine')
+GEOLOCATOR = Nominatim(user_agent='bot')
 
 
 # FUNCTIONS
@@ -67,7 +67,7 @@ class Form(StatesGroup):
 
 
 # /start handler
-@form_router.message(CommandStart())
+@FORM_ROUTER.message(CommandStart())
 async def command_start_handler(message: Message, state: FSMContext):
     """/start handler"""
     
@@ -90,7 +90,7 @@ async def command_start_handler(message: Message, state: FSMContext):
 
 
 # Cancel handler
-@form_router.message(F.text.casefold() == "cancel")
+@FORM_ROUTER.message(F.text.casefold() == "cancel")
 async def cancel_handler(message: Message, state: FSMContext):
     """Cancel handler"""
     
@@ -113,7 +113,7 @@ async def cancel_handler(message: Message, state: FSMContext):
 
 
 # Message handler (location or city name)
-@form_router.message()
+@FORM_ROUTER.message()
 async def process_location(message: Message, state: FSMContext):
     """City name or location handler"""
     
@@ -125,7 +125,7 @@ async def process_location(message: Message, state: FSMContext):
         
         # Get the city name
         try:
-            city = geolocator.reverse(coordinates, language='en').raw['address'].get('city', '')
+            city = GEOLOCATOR.reverse(coordinates, language='en').raw['address'].get('city', '')
         except:
             return await message.reply('invalid location')
     
@@ -162,7 +162,7 @@ async def process_location(message: Message, state: FSMContext):
 
 
 # Update weather handler
-@form_router.callback_query(lambda c : c.data == 'update')
+@FORM_ROUTER.callback_query(lambda c : c.data == 'update')
 async def update_handler(callback_query: types.CallbackQuery, state: FSMContext):
     """Inline update button handler"""
     
@@ -181,25 +181,26 @@ async def update_handler(callback_query: types.CallbackQuery, state: FSMContext)
     new_message = generate_weather_message(weather_data, city)
     
     # Check if anything changed
-    if new_message != callback_query.message.text:
+    if new_message == callback_query.message.text:
+        return
         
-        # Updating the message with up-to-date weather
-        await callback_query.message.edit_text(new_message)
-        await callback_query.message.edit_reply_markup(
-            reply_markup = types.InlineKeyboardMarkup(
-            inline_keyboard=[
-                    [
-                        types.InlineKeyboardButton(text="Update", callback_data='update')
-                    ]
+    # Updating the message with up-to-date weather
+    await callback_query.message.edit_text(new_message)
+    await callback_query.message.edit_reply_markup(
+        reply_markup = types.InlineKeyboardMarkup(
+        inline_keyboard=[
+                [
+                    types.InlineKeyboardButton(text="Update", callback_data='update')
                 ]
-            )
+            ]
         )
+    )
 
 
 # LAUNCH
 async def main():
-    dp.include_router(form_router)
-    await dp.start_polling(bot)
+    DP.include_router(FORM_ROUTER)
+    await DP.start_polling(BOT)
 
 
 if __name__ == "__main__":

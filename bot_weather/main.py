@@ -19,6 +19,13 @@ from geopy import Nominatim
 from config import API_TOKEN, API_WEATHER
 
 
+# VARIABLES
+bot = Bot(token=API_TOKEN, parse_mode=ParseMode.HTML)
+dp = Dispatcher(bot=bot)
+form_router = Router(name='Weather FSM machine')
+geolocator = Nominatim(user_agent='bot')
+
+
 # FUNCTIONS
 def get_weather_by_city(city: str) -> dict | None:
     """Get a json response from openweather API by city name"""
@@ -52,13 +59,6 @@ Weather: <b>{weather_description}</b>
 Wind Speed: <b>{wind_speed} m/s</b>
 Humidity: <b>{humidity}%</b>
 """
-
-
-# VARIABLES
-bot = Bot(token=API_TOKEN, parse_mode=ParseMode.HTML)
-dp = Dispatcher(bot=bot)
-form_router = Router(name='Weather FSM machine')
-geolocator = Nominatim(user_agent='bot')
 
 
 # STATES

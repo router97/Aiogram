@@ -21,6 +21,8 @@ from config import API_TOKEN
 # CONSTANTS
 BOT = Bot(API_TOKEN, parse_mode=ParseMode.HTML)
 DP = Dispatcher(bot=BOT)
+MAX_INCORRECT_TRIES = 5
+CORRECT_ANSWERS_TO_WIN = 10
 
 
 # STATES
@@ -122,12 +124,12 @@ async def callback_query_handler(callback_query: types.CallbackQuery, state: FSM
         await callback_query.message.reply(f"Correct!, your score is <b>{score_user['correct']}/10</b>")
     
     # Check for a loss
-    if score_user['incorrect'] >= 5:
+    if score_user['incorrect'] >= MAX_INCORRECT_TRIES:
         await state.clear()
         return await callback_query.message.reply('You lost!')
     
     # Check for a win
-    elif score_user['correct'] >= 10:
+    elif score_user['correct'] >= CORRECT_ANSWERS_TO_WIN:
         await state.clear()
         return await callback_query.message.reply('You won!')
     

@@ -1,101 +1,150 @@
-# Math bot
+# MATH BOT
 
 
 # IMPORTS
-from aiogram import Bot, Dispatcher
-import asyncio
-import logging
-import sys
+from random import randint, choice
+from asyncio import run as asyncio_run
+from logging import basicConfig, INFO
+from sys import stdout
+from numpy import safe_eval
+
 from aiogram import Bot, Dispatcher, types
 from aiogram.enums import ParseMode
-from aiogram.filters import CommandStart, Command
+from aiogram.filters import CommandStart
 from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
-
-from random import randint, choice, shuffle
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
 
 from config import API_TOKEN
 
 
-# VARIABLES
-bot = Bot(token=API_TOKEN)
-dp = Dispatcher(bot=bot)
+# CONSTANTS
+BOT = Bot(API_TOKEN, parse_mode=ParseMode.HTML)
+DP = Dispatcher(bot=BOT)
+
+
+# STATES
+class Form(StatesGroup):
+    quiz = State()
+
+
+# FUNCTIONS
+
+# MATH QUIZ GENERATOR
+def generate_quiz(option_count: int = 4) -> dict:
+    "Generating a quiz with 4 options"
+    
+    # Generate 4 random numbers
+    num1, num2, num3, num4 = tuple(randint(1, 9) for _ in range(4))
+    
+    # Generate the question
+    question = f"{num1} {choice(('+', '-', '*', '/'))} {num2}"
+    
+    # Get the answer
+    answer = eval(question)
+    
+    # Generate 4 random options
+    options = [str(eval(f"{answer} {choice(('+', '-', '*', '/'))} {choice((num1, num2, num3, num4))}")) for _ in range(option_count)]
+
+    # Insert the answer in one of the options
+    options[randint(0, option_count-1)] = str(answer)
+    
+    # Return the results
+    return {'question': question, 'options': options, 'answer': answer}
+
+
+# MARKUP GENERATOR
+def generate_quiz_markup(options: list[str]) -> InlineKeyboardMarkup:
+    """Generating a quiz markup"""
+    
+    # Generating buttons
+    button_list = [InlineKeyboardButton(text=option, callback_data=option) for option in options]
+    
+    # Formatting buttons, so that there isn't more than 2 buttons on one line
+    button_list_formatted = [button_list[counter:counter+2] for counter in range(0, len(button_list), 2)]
+    
+    # Return the markup
+    return InlineKeyboardMarkup(inline_keyboard=button_list_formatted)
 
 
 # COMMANDS
-@dp.message(CommandStart())
-async def command_start_handler(message: Message):
-    print(message, "\n"*3)
-    await message.answer("<i>Engie goin' up!</i>\n<b>↓ commands ↓</b>\n<pre>/math</pre>")
 
-
-def generate_math_questions() -> tuple[list, str]:
-    "Generates 4 random questions, and an answer to one of them."
+# /start
+@DP.message(CommandStart())
+async def command_start_handler(message: Message, state: FSMContext):
     
-    num1, num2, num3, num4 = randint(1, 11), randint(1, 11), randint(1, 20), randint(1, 20)
-    op1, op2 = choice(['+', '-', '*', '/']), choice(['+', '-', '*', '/'])
-    length = randint(2,3)
-    question_real = f"{num1}{op1}{num2}"
-    question2, question3, question4 = f"{num2}{op1}{num4+num2}", f"{num4*num1}{op2}{num4*num1}", f"{num1}{op1}{num1+num3}"
-    rand = randint(0,3)
-    options = [question_real, question2, question3, question4]
-    options[randint(0,3)] += f"{op2}{num4}"
-    options[randint(0,3)] += f"{op2}{num4}"
-    answer = f"{eval(options[0])}"
-    shuffle(options)
-    return options, answer
-
-
-def generate_message() -> InlineKeyboardMarkup:
-    """Generates a message markup and changes the global answer."""
+    # Set state to quiz
+    await state.set_state(Form.quiz)
     
-    global answer
-    options, answer = generate_math_questions()
-    button = InlineKeyboardButton(text=options[0], callback_data=options[0])
-    button2 = InlineKeyboardButton(text=options[1], callback_data=options[1])
-    button3 = InlineKeyboardButton(text=options[2], callback_data=options[2])
-    button4 = InlineKeyboardButton(text=options[3], callback_data=options[3])
-    button5 = InlineKeyboardButton(text='skip', callback_data='next')
-    markup = InlineKeyboardMarkup(inline_keyboard=[[button,button2], [button3, button4], [button5]])
-    return markup
-
-
-@dp.message(Command('math'))
-async def command_math_handler(message: Message):
+    # Generate a quiz
+    math_quiz = generate_quiz()
     
-    global answer
-    markup = generate_message()
-    await message.reply(text=f"{answer}", reply_markup=markup)
+    # Store the quiz and score in state data
+    await state.update_data(quiz = math_quiz, score = {'correct': 0, 'incorrect': 0})
+    
+    # Generate markup
+    markup = generate_quiz_markup(math_quiz['options'])
+    
+    # Reply
+    await message.reply("Sup, i'm a math quiz bot.\n\n<b>5</b> mistakes, you <b>lose</b>\n<b>10</b> correct answers and you <b>win</b>")
+    await message.reply(math_quiz['question'], reply_markup=markup)
 
 
-@dp.callback_query(lambda c: True)
-async def inline_kb_answer_callback_handler(query: types.CallbackQuery):
+# CALLBACK QUERY
+@DP.callback_query()
+async def callback_query_handler(callback_query: types.CallbackQuery, state: FSMContext):
     
-    selected_option = query.data
+    # Fetch the user's data
+    state_data = await state.get_data()
+    quiz_math = state_data.get('quiz')
+    score_user = state_data.get('score', {'correct': 0, 'incorrect': 0})
+
+    # Check if the question is outdated
+    if not quiz_math or quiz_math['question'] != callback_query.message.text:
+        return await callback_query.answer('outdated question!')
     
-    if str(eval(selected_option)) == answer:
-        await query.answer("Correct!")
-        markup = generate_message()
-        await query.message.edit_text(text=f"{answer}", reply_markup=markup)
-    elif selected_option == 'next':
-        markup = generate_message()
-        await query.message.edit_text(text=f"{answer}", reply_markup=markup)
+    # Fetch the option selected
+    selected_option = safe_eval(callback_query.data)
+    
+    # Answer the query, so that the button won't look like it's frozen
+    await callback_query.answer()
+    
+    # If the selected option is incorrect
+    if selected_option != quiz_math['answer']:
+        score_user['incorrect'] += 1
+        await callback_query.message.edit_text(text=f"<del>{callback_query.message.text}</del>")
+        await callback_query.message.reply(f"<b>Incorrect!</b>, the correct option was <b>{quiz_math['answer']}</b>\nYou have <b>{5-score_user['incorrect']}</b> tries left.")
+    
+    # If it's correct
     else:
-        await query.answer("Incorrect!")
+        score_user['correct'] += 1
+        await callback_query.message.edit_reply_markup()
+        await callback_query.message.reply(f"Correct!, your score is <b>{score_user['correct']}/10</b>")
+    
+    # Check for a loss
+    if score_user['incorrect'] >= 5:
+        await state.clear()
+        return await callback_query.message.reply('You lost!')
+    
+    # Check for a win
+    elif score_user['correct'] >= 10:
+        await state.clear()
+        return await callback_query.message.reply('You won!')
+    
+    # Generate a new quiz and markup
+    quiz_math = generate_quiz()
+    await state.update_data(quiz = quiz_math, score = score_user)
+    markup = generate_quiz_markup(quiz_math['options'])
 
-
-# MESSAGES
-@dp.message()
-async def message_handler(message: Message):
-    print(message, "\n"*3)
-    await message.reply("Whoops, pal, I reckon I couldn't help with that.\n\nNext time, try typing <b>/math</b>, <i>perhaps?</i>")
+    # Send the new message
+    await callback_query.message.answer(text=quiz_math['question'], reply_markup=markup)
 
 
 # LAUNCH
 async def main():
-    bot = Bot(API_TOKEN, parse_mode=ParseMode.HTML)
-    await dp.start_polling(bot)
+    await DP.start_polling(BOT)
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, stream=sys.stdout)
-    asyncio.run(main())
+    basicConfig(level=INFO, stream=stdout)
+    asyncio_run(main())

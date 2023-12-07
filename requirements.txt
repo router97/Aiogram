@@ -22,6 +22,7 @@ hyperframe==5.2.0
 idna==2.10
 magic-filter==1.0.12
 multidict==6.0.4
+numpy==1.26.2
 pydantic==2.3.0
 pydantic_core==2.6.3
 requests==2.31.0

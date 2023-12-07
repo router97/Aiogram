@@ -34,7 +34,7 @@ class Form(StatesGroup):
 
 # MATH QUIZ GENERATOR
 def generate_quiz(option_count: int = 4) -> dict:
-    "Generating a quiz with 4 options"
+    "Generate a quiz with random options."
     
     # Generate 4 random numbers
     num1, num2, num3, num4 = tuple(randint(1, 9) for _ in range(4))
@@ -57,7 +57,7 @@ def generate_quiz(option_count: int = 4) -> dict:
 
 # MARKUP GENERATOR
 def generate_quiz_markup(options: list[str]) -> InlineKeyboardMarkup:
-    """Generating a quiz markup"""
+    """Generate an inline keyboard markup for the quiz options."""
     
     # Generating buttons
     button_list = [InlineKeyboardButton(text=option, callback_data=option) for option in options]
@@ -79,17 +79,17 @@ async def command_start_handler(message: Message, state: FSMContext):
     await state.set_state(Form.quiz)
     
     # Generate a quiz
-    math_quiz = generate_quiz()
+    quiz_math = generate_quiz()
     
     # Store the quiz and score in state data
-    await state.update_data(quiz = math_quiz, score = {'correct': 0, 'incorrect': 0})
+    await state.update_data(quiz = quiz_math, score = {'correct': 0, 'incorrect': 0})
     
     # Generate markup
-    markup = generate_quiz_markup(math_quiz['options'])
+    markup = generate_quiz_markup(quiz_math['options'])
     
     # Reply
     await message.reply("Sup, i'm a math quiz bot.\n\n<b>5</b> mistakes, you <b>lose</b>\n<b>10</b> correct answers and you <b>win</b>")
-    await message.reply(math_quiz['question'], reply_markup=markup)
+    await message.reply(quiz_math['question'], reply_markup=markup)
 
 
 # CALLBACK QUERY
@@ -104,6 +104,13 @@ async def callback_query_handler(callback_query: types.CallbackQuery, state: FSM
     # Check if the question is outdated
     if not quiz_math or quiz_math['question'] != callback_query.message.text:
         return await callback_query.answer('outdated question!')
+    
+    # Check if the data provided is a valid int or float
+    # / / / Security check for safe_eval()
+    try:
+        float(callback_query.data)
+    except:
+        return
     
     # Fetch the option selected
     selected_option = safe_eval(callback_query.data)

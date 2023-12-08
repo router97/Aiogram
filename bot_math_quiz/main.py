@@ -8,10 +8,10 @@ from logging import basicConfig, INFO
 from sys import stdout
 from numpy import safe_eval
 
-from aiogram import Bot, Dispatcher, types
+from aiogram import Bot, Dispatcher
 from aiogram.enums import ParseMode
 from aiogram.filters import CommandStart
-from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 
@@ -94,7 +94,7 @@ async def command_start_handler(message: Message, state: FSMContext):
 
 # CALLBACK QUERY
 @DP.callback_query()
-async def callback_query_handler(callback_query: types.CallbackQuery, state: FSMContext):
+async def callback_query_handler(callback_query: CallbackQuery, state: FSMContext):
     
     # Fetch the user's data
     state_data = await state.get_data()

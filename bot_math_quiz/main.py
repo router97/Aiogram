@@ -34,7 +34,7 @@ class Form(StatesGroup):
 
 # MATH QUIZ GENERATOR
 async def generate_quiz(option_count: int = 4) -> dict:
-    "Generate a quiz with random options."
+    """Generate a quiz with random options."""
     
     # Generate 4 random numbers
     num1, num2, num3, num4 = tuple(randint(1, 9) for _ in range(4))

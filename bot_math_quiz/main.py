@@ -33,13 +33,13 @@ class Form(StatesGroup):
 # FUNCTIONS
 
 # MATH QUIZ GENERATOR
-def generate_quiz(option_count: int = 4) -> dict:
+async def generate_quiz(option_count: int = 4) -> dict:
     "Generate a quiz with random options."
     
     # Generate 4 random numbers
     num1, num2, num3, num4 = tuple(randint(1, 9) for _ in range(4))
     
-    # Generate the question
+    # Generate a question
     question = f"{num1} {choice(('+', '-', '*', '/'))} {num2}"
     
     # Get the answer
@@ -56,7 +56,7 @@ def generate_quiz(option_count: int = 4) -> dict:
 
 
 # MARKUP GENERATOR
-def generate_quiz_markup(options: list[str]) -> InlineKeyboardMarkup:
+async def generate_quiz_markup(options: list[str]) -> InlineKeyboardMarkup:
     """Generate an inline keyboard markup for the quiz options."""
     
     # Generating buttons
@@ -79,13 +79,13 @@ async def command_start_handler(message: Message, state: FSMContext):
     await state.set_state(Form.quiz)
     
     # Generate a quiz
-    quiz_math = generate_quiz()
+    quiz_math = await generate_quiz()
     
     # Store the quiz and score in state data
     await state.update_data(quiz = quiz_math, score = {'correct': 0, 'incorrect': 0})
     
     # Generate markup
-    markup = generate_quiz_markup(quiz_math['options'])
+    markup = await generate_quiz_markup(quiz_math['options'])
     
     # Reply
     await message.reply("Sup, i'm a math quiz bot.\n\n<b>5</b> mistakes, you <b>lose</b>\n<b>10</b> correct answers and you <b>win</b>")
@@ -141,9 +141,9 @@ async def callback_query_handler(callback_query: types.CallbackQuery, state: FSM
         return await callback_query.message.reply('You won!')
     
     # Generate a new quiz and markup
-    quiz_math = generate_quiz()
+    quiz_math = await generate_quiz()
     await state.update_data(quiz = quiz_math, score = score_user)
-    markup = generate_quiz_markup(quiz_math['options'])
+    markup = await generate_quiz_markup(quiz_math['options'])
 
     # Send the new message
     await callback_query.message.answer(text=quiz_math['question'], reply_markup=markup)

@@ -15,8 +15,11 @@ from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, C
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 
-from config import API_TOKEN
-
+# from config import API_TOKEN
+import os
+from dotenv import load_dotenv
+load_dotenv()
+API_TOKEN = os.environ.get('API_TOKEN')
 
 # CONSTANTS
 BOT = Bot(API_TOKEN, parse_mode=ParseMode.HTML)
